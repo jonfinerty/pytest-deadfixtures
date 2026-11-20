@@ -194,12 +194,12 @@ def get_used_fixturesdefs(session: pytest.Session):
 def get_parametrized_fixtures(
     session: pytest.Session, available_fixtures: list[AvailableFixture]
 ):
-    params_values = []
+    params_values = set()
     for test_function in session.items:
         try:
             for v in test_function.callspec.params.values():
                 if isinstance(v, str):
-                    params_values.append(v)
+                    params_values.add(v)
         except AttributeError:
             continue
 
