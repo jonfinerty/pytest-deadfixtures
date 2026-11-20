@@ -381,6 +381,40 @@ def test_repeated_fixtures_found(pytester):
     assert "someclass_samefixture" in result.stdout.str()
 
 
+def test_repeated_fixtures_reported_once(pytester):
+    pytester.makepyfile(
+        """
+        import pytest
+
+
+        class SomeClass:
+            a = 1
+
+
+        @pytest.fixture()
+        def someclass_fixture():
+            return SomeClass()
+
+
+        @pytest.fixture()
+        def someclass_samefixture():
+            return SomeClass()
+
+
+        @pytest.mark.parametrize("n", range(3))
+        def test_simple(n, someclass_fixture, someclass_samefixture):
+            assert 1 == 1
+    """
+    )
+
+    result = pytester.runpytest("--dup-fixtures")
+    output = result.stdout.str()
+
+    assert DUPLICATE_FIXTURES_HEADLINE in output
+    assert output.count("Fixture name: someclass_fixture") == 1
+    assert output.count("Fixture name: someclass_samefixture") == 1
+
+
 def test_fixture_values_not_kept_alive_without_dup_fixtures(pytester):
     pytester.makepyfile(
         """

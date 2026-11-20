@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- Sped up `--dup-fixtures` and reduced its memory use: it records each distinct value of a fixture once and skips `None` values, so it reports a pair of duplicate fixtures once instead of once per test.
+
 ## [4.0.0] - 2026-10-29
 
 ### Added
