@@ -10,6 +10,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 
 - Sped up `--dead-fixtures` on large test suites by checking each used fixture definition once instead of once per test item.
+- Sped up `--dead-fixtures` on suites with many parametrized tests by storing string parameter values in a set.
 
 ## [4.0.0] - 2026-10-29
 
