@@ -238,10 +238,13 @@ def write_fixtures(tw, fixtures, write_docs: bool) -> None:
 
 
 cached_fixtures: list[CachedFixture] = []
+# The values recorded in cached_fixtures for each fixture definition.
+recorded_values: dict[Any, list[CachedFixture]] = {}
 
 
 def pytest_sessionstart(session: pytest.Session) -> None:
     cached_fixtures.clear()
+    recorded_values.clear()
 
 
 def pytest_fixture_post_finalizer(fixturedef, request):
@@ -249,17 +252,26 @@ def pytest_fixture_post_finalizer(fixturedef, request):
         return
 
     if getattr(fixturedef, "cached_result", None):
+        result = fixturedef.cached_result[0]
+        # A None value never matches another value, so it can't be a duplicate.
+        if result is None:
+            return
+
         curdir = Path.cwd()
         loc = getlocation(fixturedef.func, str(curdir))
+        fixture = CachedFixture(fixturedef, bestrelpath(curdir, Path(loc)), result)
 
-        cached_fixtures.append(
-            CachedFixture(
-                fixturedef, bestrelpath(curdir, Path(loc)), fixturedef.cached_result[0]
-            )
-        )
+        # A function-scoped fixture often returns an equal value for every test.
+        # Record each distinct value once: pytest_sessionfinish compares every
+        # pair of recorded values, and each recorded pair can print a report.
+        values = recorded_values.setdefault(fixturedef, [])
+        if any(same_value(fixture, other) for other in values):
+            return
+        values.append(fixture)
+        cached_fixtures.append(fixture)
 
 
-def same_fixture(one, two) -> bool:
+def same_value(one, two) -> bool:
     def result_same_type(a, b):
         return isinstance(a.result, type(b.result))
 
@@ -274,10 +286,14 @@ def same_fixture(one, two) -> bool:
             return a_result_dict == b_result_dict
         return a.result == b.result
 
+    return result_same_type(one, two) and same_result(one, two)
+
+
+def same_fixture(one, two) -> bool:
     def same_loc(a, b) -> bool:
         return a.relpath == b.relpath
 
-    return result_same_type(one, two) and same_result(one, two) and not same_loc(one, two)
+    return same_value(one, two) and not same_loc(one, two)
 
 
 def pytest_sessionfinish(
